@@ -3,9 +3,9 @@ package mux
 import (
 	"encoding/binary"
 
-	"github.com/sagernet/sing/common/buf"
-	M "github.com/sagernet/sing/common/metadata"
-	N "github.com/sagernet/sing/common/network"
+	"github.com/metacubex/sing/common/buf"
+	M "github.com/metacubex/sing/common/metadata"
+	N "github.com/metacubex/sing/common/network"
 )
 
 var _ N.PacketReadWaiter = (*clientPacketConn)(nil)
