@@ -1,14 +1,13 @@
 package mux
 
 import (
+	"context"
 	"io"
 	"net"
-	"reflect"
 
 	E "github.com/metacubex/sing/common/exceptions"
 	"github.com/metacubex/smux"
-
-	"github.com/hashicorp/yamux"
+	"github.com/metacubex/yamux"
 )
 
 type abstractSession interface {
@@ -35,8 +34,7 @@ func newClientSession(conn net.Conn, protocol byte) (abstractSession, error) {
 		}
 		return &smuxSession{client}, nil
 	case ProtocolYAMux:
-		checkYAMuxConn(conn)
-		client, err := yamux.Client(conn, yaMuxConfig())
+		client, err := yamux.Client(conn, yaMuxConfig(), nil)
 		if err != nil {
 			return nil, err
 		}
@@ -57,20 +55,13 @@ func newServerSession(conn net.Conn, protocol byte) (abstractSession, error) {
 		}
 		return &smuxSession{client}, nil
 	case ProtocolYAMux:
-		checkYAMuxConn(conn)
-		client, err := yamux.Server(conn, yaMuxConfig())
+		client, err := yamux.Server(conn, yaMuxConfig(), nil)
 		if err != nil {
 			return nil, err
 		}
 		return &yamuxSession{client}, nil
 	default:
 		return nil, E.New("unexpected protocol ", protocol)
-	}
-}
-
-func checkYAMuxConn(conn net.Conn) {
-	if conn.LocalAddr() == nil || conn.RemoteAddr() == nil {
-		panic("found net.Conn with nil addr: " + reflect.TypeOf(conn).String())
 	}
 }
 
@@ -96,6 +87,12 @@ type yamuxSession struct {
 	*yamux.Session
 }
 
+func (s *yamuxSession) Open() (net.Conn, error) {
+	ctx, cancel := context.WithTimeout(context.Background(), TCPTimeout)
+	defer cancel()
+	return s.Session.Open(ctx)
+}
+
 func (y *yamuxSession) CanTakeNewRequest() bool {
 	return true
 }
@@ -109,7 +106,7 @@ func smuxConfig() *smux.Config {
 func yaMuxConfig() *yamux.Config {
 	config := yamux.DefaultConfig()
 	config.LogOutput = io.Discard
-	config.StreamCloseTimeout = TCPTimeout
-	config.StreamOpenTimeout = TCPTimeout
+	//config.StreamCloseTimeout = TCPTimeout
+	//config.StreamOpenTimeout = TCPTimeout
 	return config
 }
