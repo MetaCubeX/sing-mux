@@ -10,7 +10,7 @@ import (
 	"github.com/metacubex/sing/common/buf"
 	M "github.com/metacubex/sing/common/metadata"
 	N "github.com/metacubex/sing/common/network"
-	"github.com/metacubex/sing/common/varbin"
+	"github.com/metacubex/sing/common/rw"
 )
 
 type serverConn struct {
@@ -24,11 +24,11 @@ func (c *serverConn) NeedHandshake() bool {
 
 func (c *serverConn) HandshakeFailure(err error) error {
 	errMessage := err.Error()
-	buffer := buf.NewSize(1 + varbin.UvarintLen(uint64(len(errMessage))) + len(errMessage))
+	buffer := buf.NewSize(1 + rw.UvarintLen(uint64(len(errMessage))) + len(errMessage))
 	defer buffer.Release()
 	common.Must(
 		buffer.WriteByte(statusError),
-		varbin.Write(buffer, binary.BigEndian, errMessage),
+		rw.WriteVString(buffer, errMessage),
 	)
 	return common.Error(c.ExtendedConn.Write(buffer.Bytes()))
 }
@@ -88,11 +88,11 @@ func (c *serverPacketConn) NeedHandshake() bool {
 
 func (c *serverPacketConn) HandshakeFailure(err error) error {
 	errMessage := err.Error()
-	buffer := buf.NewSize(1 + varbin.UvarintLen(uint64(len(errMessage))) + len(errMessage))
+	buffer := buf.NewSize(1 + rw.UvarintLen(uint64(len(errMessage))) + len(errMessage))
 	defer buffer.Release()
 	common.Must(
 		buffer.WriteByte(statusError),
-		varbin.Write(buffer, binary.BigEndian, errMessage),
+		rw.WriteVString(buffer, errMessage),
 	)
 	return common.Error(c.ExtendedConn.Write(buffer.Bytes()))
 }
@@ -188,11 +188,11 @@ func (c *serverPacketAddrConn) NeedHandshake() bool {
 
 func (c *serverPacketAddrConn) HandshakeFailure(err error) error {
 	errMessage := err.Error()
-	buffer := buf.NewSize(1 + varbin.UvarintLen(uint64(len(errMessage))) + len(errMessage))
+	buffer := buf.NewSize(1 + rw.UvarintLen(uint64(len(errMessage))) + len(errMessage))
 	defer buffer.Release()
 	common.Must(
 		buffer.WriteByte(statusError),
-		varbin.Write(buffer, binary.BigEndian, errMessage),
+		rw.WriteVString(buffer, errMessage),
 	)
 	return common.Error(c.ExtendedConn.Write(buffer.Bytes()))
 }

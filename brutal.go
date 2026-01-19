@@ -7,7 +7,7 @@ import (
 	"github.com/metacubex/sing/common"
 	"github.com/metacubex/sing/common/buf"
 	E "github.com/metacubex/sing/common/exceptions"
-	"github.com/metacubex/sing/common/varbin"
+	"github.com/metacubex/sing/common/rw"
 )
 
 const (
@@ -32,7 +32,7 @@ func WriteBrutalResponse(writer io.Writer, receiveBPS uint64, ok bool, message s
 	if ok {
 		common.Must(binary.Write(buffer, binary.BigEndian, receiveBPS))
 	} else {
-		err := varbin.Write(buffer, binary.BigEndian, message)
+		err := rw.WriteVString(buffer, message)
 		if err != nil {
 			return err
 		}
@@ -52,7 +52,7 @@ func ReadBrutalResponse(reader io.Reader) (uint64, error) {
 		return receiveBPS, err
 	} else {
 		var message string
-		message, err = varbin.ReadValue[string](reader, binary.BigEndian)
+		message, err = rw.ReadVString(reader)
 		if err != nil {
 			return 0, err
 		}

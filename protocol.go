@@ -12,7 +12,6 @@ import (
 	M "github.com/metacubex/sing/common/metadata"
 	N "github.com/metacubex/sing/common/network"
 	"github.com/metacubex/sing/common/rw"
-	"github.com/metacubex/sing/common/varbin"
 )
 
 const (
@@ -176,7 +175,7 @@ func ReadStreamResponse(reader io.Reader) (*StreamResponse, error) {
 		return nil, err
 	}
 	if response.Status == statusError {
-		response.Message, err = varbin.ReadValue[string](reader, binary.BigEndian)
+		response.Message, err = rw.ReadVString(reader)
 		if err != nil {
 			return nil, err
 		}
