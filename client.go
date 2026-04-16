@@ -4,6 +4,7 @@ import (
 	"context"
 	"net"
 	"sync"
+	"time"
 
 	"github.com/metacubex/sing/common"
 	"github.com/metacubex/sing/common/bufio"
@@ -22,6 +23,7 @@ type Client struct {
 	minStreams     int
 	maxStreams     int
 	padding        bool
+	tcpTimeout     time.Duration
 	access         sync.Mutex
 	connections    list.List[abstractSession]
 	brutal         BrutalOptions
@@ -35,6 +37,7 @@ type Options struct {
 	MinStreams     int
 	MaxStreams     int
 	Padding        bool
+	TCPTimeout     time.Duration
 	Brutal         BrutalOptions
 }
 
@@ -52,6 +55,7 @@ func NewClient(options Options) (*Client, error) {
 		minStreams:     options.MinStreams,
 		maxStreams:     options.MaxStreams,
 		padding:        options.Padding,
+		tcpTimeout:     options.TCPTimeout,
 		brutal:         options.Brutal,
 	}
 	if client.dialer == nil {
@@ -59,6 +63,9 @@ func NewClient(options Options) (*Client, error) {
 	}
 	if client.maxStreams == 0 && client.maxConnections == 0 {
 		client.minStreams = 8
+	}
+	if client.tcpTimeout == 0 {
+		client.tcpTimeout = 5 * time.Second
 	}
 	switch options.Protocol {
 	case "", "h2mux":
@@ -113,7 +120,7 @@ func (c *Client) openStream(ctx context.Context) (net.Conn, error) {
 		if err != nil {
 			continue
 		}
-		stream, err = session.Open()
+		stream, err = session.Open(c.tcpTimeout)
 		if err != nil {
 			continue
 		}
@@ -168,7 +175,7 @@ func (c *Client) offer(ctx context.Context) (abstractSession, error) {
 }
 
 func (c *Client) offerNew(ctx context.Context) (abstractSession, error) {
-	ctx, cancel := context.WithTimeout(ctx, TCPTimeout)
+	ctx, cancel := context.WithTimeout(ctx, c.tcpTimeout)
 	defer cancel()
 	conn, err := c.dialer.DialContext(ctx, N.NetworkTCP, Destination)
 	if err != nil {
@@ -206,7 +213,7 @@ func (c *Client) offerNew(ctx context.Context) (abstractSession, error) {
 }
 
 func (c *Client) brutalExchange(ctx context.Context, sessionConn net.Conn, session abstractSession) error {
-	stream, err := session.Open()
+	stream, err := session.Open(c.tcpTimeout)
 	if err != nil {
 		return err
 	}

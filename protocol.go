@@ -4,7 +4,6 @@ import (
 	"encoding/binary"
 	"io"
 	"math/rand"
-	"time"
 
 	"github.com/metacubex/sing/common"
 	"github.com/metacubex/sing/common/buf"
@@ -23,10 +22,6 @@ const (
 const (
 	Version0 = iota
 	Version1
-)
-
-const (
-	TCPTimeout = 5 * time.Second
 )
 
 var Destination = M.Socksaddr{

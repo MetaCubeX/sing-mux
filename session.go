@@ -4,6 +4,7 @@ import (
 	"context"
 	"io"
 	"net"
+	"time"
 
 	E "github.com/metacubex/sing/common/exceptions"
 	"github.com/metacubex/smux"
@@ -11,7 +12,7 @@ import (
 )
 
 type abstractSession interface {
-	Open() (net.Conn, error)
+	Open(tcpTimeout time.Duration) (net.Conn, error)
 	Accept() (net.Conn, error)
 	NumStreams() int
 	Close() error
@@ -71,7 +72,7 @@ type smuxSession struct {
 	*smux.Session
 }
 
-func (s *smuxSession) Open() (net.Conn, error) {
+func (s *smuxSession) Open(tcpTimeout time.Duration) (net.Conn, error) {
 	return s.OpenStream()
 }
 
@@ -87,8 +88,8 @@ type yamuxSession struct {
 	*yamux.Session
 }
 
-func (s *yamuxSession) Open() (net.Conn, error) {
-	ctx, cancel := context.WithTimeout(context.Background(), TCPTimeout)
+func (s *yamuxSession) Open(tcpTimeout time.Duration) (net.Conn, error) {
+	ctx, cancel := context.WithTimeout(context.Background(), tcpTimeout)
 	defer cancel()
 	return s.Session.Open(ctx)
 }

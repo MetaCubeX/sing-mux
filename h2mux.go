@@ -64,7 +64,7 @@ func (s *h2MuxServerSession) ServeHTTP(writer http.ResponseWriter, request *http
 	}
 }
 
-func (s *h2MuxServerSession) Open() (net.Conn, error) {
+func (s *h2MuxServerSession) Open(tcpTimeout time.Duration) (net.Conn, error) {
 	return nil, os.ErrInvalid
 }
 
@@ -197,7 +197,7 @@ func (s *h2MuxClientSession) MarkDead(conn *http2.ClientConn) {
 	s.Close()
 }
 
-func (s *h2MuxClientSession) Open() (net.Conn, error) {
+func (s *h2MuxClientSession) Open(tcpTimeout time.Duration) (net.Conn, error) {
 	pipeInReader, pipeInWriter := io.Pipe()
 	request := &http.Request{
 		Method: http.MethodConnect,
@@ -212,7 +212,7 @@ func (s *h2MuxClientSession) Open() (net.Conn, error) {
 		select {
 		case <-requestDone:
 			return
-		case <-time.After(TCPTimeout):
+		case <-time.After(tcpTimeout):
 			cancel()
 		}
 	}()
