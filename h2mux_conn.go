@@ -5,6 +5,7 @@ import (
 	"io"
 	"net"
 	"os"
+	"sync"
 	"time"
 
 	"github.com/metacubex/sing/common"
@@ -13,18 +14,18 @@ import (
 )
 
 type httpConn struct {
-	reader io.Reader
-	writer io.Writer
-	create chan struct{}
-	err    error
-	cancel context.CancelFunc
+	reader    io.ReadCloser
+	writer    io.Writer
+	setupOnce sync.Once
+	create    chan struct{}
+	err       error
+	cancel    context.CancelFunc
 }
 
-func newHTTPConn(reader io.Reader, writer io.Writer) *httpConn {
-	return &httpConn{
-		reader: reader,
-		writer: writer,
-	}
+func newHTTPConn(reader io.ReadCloser, writer io.Writer) *httpConn {
+	conn := newLateHTTPConn(writer, nil)
+	conn.setup(reader, nil)
+	return conn
 }
 
 func newLateHTTPConn(writer io.Writer, cancel context.CancelFunc) *httpConn {
@@ -35,18 +36,21 @@ func newLateHTTPConn(writer io.Writer, cancel context.CancelFunc) *httpConn {
 	}
 }
 
-func (c *httpConn) setup(reader io.Reader, err error) {
-	c.reader = reader
-	c.err = err
-	close(c.create)
+func (c *httpConn) setup(reader io.ReadCloser, err error) {
+	c.setupOnce.Do(func() {
+		c.reader = reader
+		c.err = err
+		close(c.create)
+	})
+	if c.err != nil && reader != nil { // conn already closed before setup
+		_ = reader.Close()
+	}
 }
 
 func (c *httpConn) Read(b []byte) (n int, err error) {
-	if c.create != nil {
-		<-c.create
-		if c.err != nil {
-			return 0, c.err
-		}
+	<-c.create
+	if c.err != nil {
+		return 0, c.err
 	}
 	n, err = c.reader.Read(b)
 	return n, baderror.WrapH2(err)
@@ -58,6 +62,7 @@ func (c *httpConn) Write(b []byte) (n int, err error) {
 }
 
 func (c *httpConn) Close() error {
+	c.setup(nil, net.ErrClosed)
 	if c.cancel != nil {
 		c.cancel()
 	}
