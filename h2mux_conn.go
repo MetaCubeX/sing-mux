@@ -49,7 +49,7 @@ func (c *httpConn) setup(reader io.ReadCloser, err error) {
 
 func (c *httpConn) Read(b []byte) (n int, err error) {
 	<-c.create
-	if c.err != nil {
+	if c.reader == nil {
 		return 0, c.err
 	}
 	n, err = c.reader.Read(b)
