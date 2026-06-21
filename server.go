@@ -127,6 +127,12 @@ func (s *Service) newConnection(ctx context.Context, sessionConn net.Conn, strea
 			}
 			return nil
 		}
+		// make sure server request send before mihomo ctx is done
+		_, err = conn.Write(nil)
+		if err != nil {
+			conn.Close()
+			return err
+		}
 		s.logger.InfoContext(ctx, "inbound multiplex connection to ", metadata.Destination)
 		s.handler.NewConnection(ctx, conn, metadata)
 		stream.Close()
