@@ -112,10 +112,12 @@ func (w *yamuxWrapStream) Write(p []byte) (n int, err error) {
 	return n, wrapError(err)
 }
 
-// CloseWrite maps to yamux half-close: Close() sends FIN, the stream
-// becomes locally closed and can still be read.
+// CloseWrite half-closes the stream: it sends FIN and keeps the read side
+// open. metacubex/yamux (unlike hashicorp/yamux) implements Close() as
+// CloseRead()+CloseWrite(), so calling Close() here would discard the
+// peer's response.
 func (w *yamuxWrapStream) CloseWrite() error {
-	return w.Stream.Close()
+	return w.Stream.CloseWrite()
 }
 
 func (w *yamuxWrapStream) Upstream() any {
